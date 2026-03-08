@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import Settings
+from app.core.database import Base, engine
 from app.core.neo4j import Neo4jConnection
 
 settings = Settings()  # type: ignore[call-arg]
@@ -36,6 +37,10 @@ async def lifespan(app: FastAPI):
 
     # Import models so Alembic / Base.metadata knows them
     from app.models import audit, compliance, organization, project, rule, user  # noqa: F401
+
+    # Create tables for local/dev environments when migrations are not present.
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     logger.info("ArchGuard API ready  ✓")
     yield
